@@ -1,0 +1,23 @@
+{
+  "name": "web3js-test1",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "dependencies": {
+    "discord.js": "^12.5.3",
+    "dotenv": "^10.0.0",
+    "esm": "^3.2.25",
+    "ethereumjs-tx": "^1.3.7",
+    "graphql": "^15.5.0",
+    "graphql-request": "^3.4.0",
+    "node-fetch": "^2.6.1",
+    "node-schedule": "^2.0.0",
+    "web3": "^1.3.6"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
