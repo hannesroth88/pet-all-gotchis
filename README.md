@@ -1,4 +1,4 @@
-# pet-a-gotchi
+# pet-all-gotchis
 Nodejs App to pet all your Aavegotchis every 12 hours.
 
 Please take care of your Aavegotchis! This is only to be used when you are on vacation or so.
