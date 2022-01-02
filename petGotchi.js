@@ -51,7 +51,10 @@ async function fetchUserFromGraph() {
                             `
 
     const variables = { id: myAddr }
-    const response = await graphql.request(uriGraph, queryOwner, variables).catch(console.error);
+    const response = await graphql.request(uriGraph, queryOwner, variables).catch(() => {
+        console.error
+        return null
+    });
     return response.user
 }
 
@@ -154,17 +157,24 @@ async function main() {
     sendDiscord(msgDiscord)
 
     jobs['petJob'] = schedule.scheduleJob(delayedStart, async () => {
-
-        runJob(gotchisOwned).then(() => {
-            // calculate next Pet Job and delay a bit, so it's not too obvious             
-            const minSleepSec = 60      // 1 min
-            const maxSleepSec = 10 * 60  // 10 min
-            const rndWaitSec = Math.random() * (maxSleepSec - minSleepSec) + minSleepSec;
-            var nextSchedule = new Date(new Date().getTime() + 12 * 3600 * 1000 + rndWaitSec * 1000);
-            console.log('Reschedule for next Petting at ' + dateToLocalDateString(nextSchedule));
-            sendDiscord('Reschedule for next Petting at ' + dateToLocalDateString(nextSchedule));
-            jobs['petJob'].reschedule(nextSchedule);
-        })
+        if (gotchisOwned) {
+            runJob(gotchisOwned).then(() => {
+                // calculate next Pet Job and delay a bit, so it's not too obvious             
+                const minSleepSec = 60      // 1 min
+                const maxSleepSec = 2 * 60  // 2 min
+                const rndWaitSec = Math.random() * (maxSleepSec - minSleepSec) + minSleepSec;
+                var nextSchedule = new Date(new Date().getTime() + 12 * 3600 * 1000 + rndWaitSec * 1000);
+                console.log('Reschedule for next Petting at ' + dateToLocalDateString(nextSchedule));
+                sendDiscord('Reschedule for next Petting at ' + dateToLocalDateString(nextSchedule));
+                jobs['petJob'].reschedule(nextSchedule);
+            }).catch(() => {
+                // try again on error (Polygon in error state, e.g. too busy)                
+                var nextScheduleError = new Date(new Date().getTime() + 1 * 3600 * 1000); // 1 hour
+                console.log('Error, try again at ' + dateToLocalDateString(nextScheduleError));
+                sendDiscord('Error, try again at ' + dateToLocalDateString(nextScheduleError));
+                jobs['petJob'].reschedule(nextScheduleError);
+            })
+        }
 
     });
 
