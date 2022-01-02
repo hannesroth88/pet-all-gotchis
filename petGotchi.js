@@ -73,7 +73,7 @@ function petGotchis(gotchis) {
                 nonce: web3.utils.toHex(txCount),
                 to: smartContrAdr,
                 gasLimit: web3.utils.toHex(70000),
-                gasPrice: web3.utils.toHex(web3.utils.toWei('10', 'gwei')),
+                gasPrice: web3.utils.toHex(web3.utils.toWei('40', 'gwei')),
                 data: contract.methods.interact(gotchiIds).encodeABI(),
                 chainId: web3.utils.toHex(137) // Matic Chain
             };
