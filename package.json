@@ -4,6 +4,7 @@
   "description": "",
   "main": "main.js",
   "dependencies": {
+    "axios": "^0.25.0",
     "discord.js": "^12.5.3",
     "dotenv": "^10.0.0",
     "esm": "^3.2.25",

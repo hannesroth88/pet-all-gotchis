@@ -4,6 +4,7 @@ const Discord = require('discord.js');
 var schedule = require('node-schedule');
 const Tx = require('ethereumjs-tx')
 const Web3 = require('web3')
+const axios = require('axios');
 
 var msgDiscord = ''
 // ETH Config
@@ -17,6 +18,7 @@ const smartContrAdr = "0x86935F11C86623deC8a25696E1C19a8659CbF95d"
 const abi = require('./abi/abiDiamond.json')
 const contract = new web3.eth.Contract(abi, smartContrAdr)
 
+
 //Subgraph
 const uriGraph = 'https://api.thegraph.com/subgraphs/name/aavegotchi/aavegotchi-core-matic';
 
@@ -26,106 +28,24 @@ const embed = new Discord.MessageEmbed()
     .setTitle('Pet Gotchi Bot')
     .setColor('#0099ff');
 
-function sendDiscord(text) {
-    webhookClient.send(text, {
-        username: 'petAGotchi',
-        avatarURL: 'https://i.imgur.com/wSTFkRM.png',
-        embeds: [embed],
-    });
-}
+// #############
+// ### START ###
+// #############
 
-// Fetch Gotchi Details from The Graph
-async function fetchUserFromGraph() {
-    const queryOwner = graphql.gql`
-                            query fetchUser($id: String!) {
-                                user(id: $id) {
-                                id
-                                gotchisOwned {
-                                    id
-                                    name
-                                    lastInteracted
-                                    gotchiId
-                                }
-                                }
-                            }
-                            `
+main()
 
-    const variables = { id: myAddr }
-    const response = await graphql.request(uriGraph, queryOwner, variables).catch(() => {
-        console.error
-        return null
-    });
-    return response.user
-}
-
-function petGotchis(gotchis) {
-
-    // create Gotchi Array
-    var gotchiIds = [];
-    gotchis.forEach(gotchi => {
-        gotchiIds.push(parseInt(gotchi.gotchiId));
-    })
-
-    return new Promise((resolve, reject) => {
-
-        web3.eth.getTransactionCount(myAddr, (err, txCount) => {
-            const txObject = {
-                nonce: web3.utils.toHex(txCount),
-                to: smartContrAdr,
-                gasLimit: web3.utils.toHex(150000),
-                gasPrice: web3.utils.toHex(web3.utils.toWei('40', 'gwei')),
-                data: contract.methods.interact(gotchiIds).encodeABI(),
-                chainId: web3.utils.toHex(137) // Matic Chain
-            };
-            console.debug('txObject.data:', txObject.data);
-            // Sign the transaction
-            const tx = new Tx(txObject);
-            tx.sign(privateKeyHex);
-            // Serialize
-            const serializedTx = tx.serialize();
-            const raw = '0x' + serializedTx.toString('hex');
-            // console.log('raw:', raw)
-            // Broadcast the transaction
-            web3.eth.sendSignedTransaction(raw, (err, txHash) => {
-                if (!err) {
-                    console.log('the Gotchis are looking happy again :)       hash:' + txHash);
-                    msgDiscord += 'the Gotchis are looking happy again :)       hash:' + txHash + "\n"
-                    resolve()
-                } else {
-                    console.log('err:', err);
-                    msgDiscord += 'something went wrong, better don\'t touch the Gotchis :(       hash:' + txHash + "\n"
-                    sendDiscord(msgDiscord + '\n' + err)
-                    reject("Error")
-                }
-            });
-        });
-    })
-}
-
-
-function dateToLocalDateString(date) {
-    return date.toLocaleString("de-DE", { timeZone: "Europe/Berlin" })
-}
-
-
-async function runJob(gotchis) {
-    msgDiscord = 'Petting all Gotchis together :)'
-    console.log("Petting all Gotchis together :)")
-
-    // finally pet Gotchi
-    await petGotchis(gotchis)
-
-    // Send to Discord
-    sendDiscord(msgDiscord)
-
-}
-
-
+// #################
+// ### Functions ###
+// #################
 async function main() {
 
     console.log('\n### Starting the Petting Maschine brrbbbbrrr ###');
     sendDiscord('\n### Starting the Petting Maschine brrbbbbrrr ###');
 
+
+    // Make a request for a user with a given ID
+    const gasPrice = await estimateGasPrice();
+    console.log("take Gasprice=" + gasPrice + " gwei")
 
     // Fetch the Gotchis From Graph at Start of App
     const gotchisOwned = await fetchUserFromGraph().then(async user => {
@@ -181,8 +101,117 @@ async function main() {
 }
 
 
-// #############
-// ### START ###
-// #############
 
-main()
+
+function sendDiscord(text) {
+    webhookClient.send(text, {
+        username: 'petAGotchi',
+        avatarURL: 'https://i.imgur.com/wSTFkRM.png',
+        embeds: [embed],
+    });
+}
+
+// Fetch Gotchi Details from The Graph
+async function fetchUserFromGraph() {
+    const queryOwner = graphql.gql`
+                                query fetchUser($id: String!) {
+                                    user(id: $id) {
+                                    id
+                                    gotchisOwned {
+                                        id
+                                        name
+                                        lastInteracted
+                                        gotchiId
+                                    }
+                                    }
+                                }
+                                `
+
+    const variables = { id: myAddr }
+    const response = await graphql.request(uriGraph, queryOwner, variables).catch(() => {
+        console.error
+        return null
+    });
+    return response.user
+}
+
+function petGotchis(gotchis, gasPrice) {
+
+    // create Gotchi Array
+    var gotchiIds = [];
+    gotchis.forEach(gotchi => {
+        gotchiIds.push(parseInt(gotchi.gotchiId));
+    })
+
+    return new Promise((resolve, reject) => {
+
+        web3.eth.getTransactionCount(myAddr, (err, txCount) => {
+            const txObject = {
+                nonce: web3.utils.toHex(txCount),
+                to: smartContrAdr,
+                gasLimit: web3.utils.toHex(150000),
+                gasPrice: web3.utils.toHex(web3.utils.toWei(gasPrice.toString(), 'gwei')),
+                data: contract.methods.interact(gotchiIds).encodeABI(),
+                chainId: web3.utils.toHex(137) // Matic Chain
+            };
+            console.debug('txObject.data:', txObject.data);
+            // Sign the transaction
+            const tx = new Tx(txObject);
+            tx.sign(privateKeyHex);
+            // Serialize
+            const serializedTx = tx.serialize();
+            const raw = '0x' + serializedTx.toString('hex');
+            // console.log('raw:', raw)
+            // Broadcast the transaction
+            web3.eth.sendSignedTransaction(raw, (err, txHash) => {
+                if (!err) {
+                    console.log('the Gotchis are looking happy again :)       hash:' + txHash);
+                    msgDiscord += 'the Gotchis are looking happy again :)       hash:' + txHash + "\n"
+                    resolve()
+                } else {
+                    console.log('err:', err);
+                    msgDiscord += 'something went wrong, better don\'t touch the Gotchis :(       hash:' + txHash + "\n"
+                    sendDiscord(msgDiscord + '\n' + err)
+                    reject("Error")
+                }
+            });
+        });
+    })
+}
+
+
+function dateToLocalDateString(date) {
+    return date.toLocaleString("de-DE", { timeZone: "Europe/Berlin" })
+}
+
+
+async function runJob(gotchis) {
+    msgDiscord = 'Petting all Gotchis together :)'
+    console.log("Petting all Gotchis together :)")
+
+    // finally pet Gotchi
+    await petGotchis(gotchis)
+
+    // Send to Discord
+    sendDiscord(msgDiscord)
+
+}
+
+
+async function estimateGasPrice() {
+    let gasPrice;
+    try {
+        const res = await axios.get(`https://api.polygonscan.com/api?module=gastracker&action=gasoracle&apikey=${process.env.POLYGON_SCAN_API_KEY}`);
+        gasPrice = Math.round(parseFloat(res.data.result.ProposeGasPrice));
+    } catch (error) {
+        console.error(error);
+    }
+    if (gasPrice === undefined) {
+        gasPrice = 200;
+    } else if (gasPrice < 50) {
+        gasPrice = 50;
+    } else if (gasPrice > 800) {
+        gasPrice = 800;
+    }
+    return gasPrice;
+}
