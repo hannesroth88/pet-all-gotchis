@@ -42,11 +42,6 @@ async function main() {
     console.log('\n### Starting the Petting Maschine brrbbbbrrr ###');
     sendDiscord('\n### Starting the Petting Maschine brrbbbbrrr ###');
 
-
-    // Make a request for a user with a given ID
-    const gasPrice = await estimateGasPrice();
-    console.log("take Gasprice=" + gasPrice + " gwei")
-
     // Fetch the Gotchis From Graph at Start of App
     const gotchisOwned = await fetchUserFromGraph().then(async user => {
 
@@ -80,8 +75,8 @@ async function main() {
         if (gotchisOwned) {
             runJob(gotchisOwned).then(() => {
                 // calculate next Pet Job and delay a bit, so it's not too obvious             
-                const minSleepSec = 60      // 1 min
-                const maxSleepSec = 2 * 60  // 2 min
+                const minSleepSec = 30      // 1 min
+                const maxSleepSec = 2 * 30  // 2 min
                 const rndWaitSec = Math.random() * (maxSleepSec - minSleepSec) + minSleepSec;
                 var nextSchedule = new Date(new Date().getTime() + 12 * 3600 * 1000 + rndWaitSec * 1000);
                 console.log('Reschedule for next Petting at ' + dateToLocalDateString(nextSchedule));
@@ -97,6 +92,23 @@ async function main() {
         }
 
     });
+
+
+    async function runJob(gotchis) {
+        msgDiscord = 'Petting all Gotchis together :)'
+        console.log("Petting all Gotchis together :)")
+
+
+        const gasPrice = await estimateGasPrice();
+        console.log("take Gasprice=" + gasPrice + " gwei")
+
+        // finally pet Gotchi
+        await petGotchis(gotchis, gasPrice)
+
+        // Send to Discord
+        sendDiscord(msgDiscord)
+
+    }
 
     function sendDiscord(text) {
         webhookClient.send(text, {
@@ -130,7 +142,7 @@ async function main() {
         return response.user
     }
 
-    function petGotchis(gotchis) {
+    function petGotchis(gotchis, gasPrice) {
 
         // create Gotchi Array
         var gotchiIds = [];
@@ -177,19 +189,6 @@ async function main() {
 
     function dateToLocalDateString(date) {
         return date.toLocaleString("de-DE", { timeZone: "Europe/Berlin" })
-    }
-
-
-    async function runJob(gotchis) {
-        msgDiscord = 'Petting all Gotchis together :)'
-        console.log("Petting all Gotchis together :)")
-
-        // finally pet Gotchi
-        await petGotchis(gotchis)
-
-        // Send to Discord
-        sendDiscord(msgDiscord)
-
     }
 
 
