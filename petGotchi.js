@@ -98,120 +98,123 @@ async function main() {
 
     });
 
-}
-
-
-
-
-function sendDiscord(text) {
-    webhookClient.send(text, {
-        username: 'petAGotchi',
-        avatarURL: 'https://i.imgur.com/wSTFkRM.png',
-        embeds: [embed],
-    });
-}
-
-// Fetch Gotchi Details from The Graph
-async function fetchUserFromGraph() {
-    const queryOwner = graphql.gql`
-                                query fetchUser($id: String!) {
-                                    user(id: $id) {
-                                    id
-                                    gotchisOwned {
-                                        id
-                                        name
-                                        lastInteracted
-                                        gotchiId
-                                    }
-                                    }
-                                }
-                                `
-
-    const variables = { id: myAddr }
-    const response = await graphql.request(uriGraph, queryOwner, variables).catch(() => {
-        console.error
-        return null
-    });
-    return response.user
-}
-
-function petGotchis(gotchis, gasPrice) {
-
-    // create Gotchi Array
-    var gotchiIds = [];
-    gotchis.forEach(gotchi => {
-        gotchiIds.push(parseInt(gotchi.gotchiId));
-    })
-
-    return new Promise((resolve, reject) => {
-
-        web3.eth.getTransactionCount(myAddr, (err, txCount) => {
-            const txObject = {
-                nonce: web3.utils.toHex(txCount),
-                to: smartContrAdr,
-                gasLimit: web3.utils.toHex(150000),
-                gasPrice: web3.utils.toHex(web3.utils.toWei(gasPrice.toString(), 'gwei')),
-                data: contract.methods.interact(gotchiIds).encodeABI(),
-                chainId: web3.utils.toHex(137) // Matic Chain
-            };
-            console.debug('txObject.data:', txObject.data);
-            // Sign the transaction
-            const tx = new Tx(txObject);
-            tx.sign(privateKeyHex);
-            // Serialize
-            const serializedTx = tx.serialize();
-            const raw = '0x' + serializedTx.toString('hex');
-            // console.log('raw:', raw)
-            // Broadcast the transaction
-            web3.eth.sendSignedTransaction(raw, (err, txHash) => {
-                if (!err) {
-                    console.log('the Gotchis are looking happy again :)       hash:' + txHash);
-                    msgDiscord += 'the Gotchis are looking happy again :)       hash:' + txHash + "\n"
-                    resolve()
-                } else {
-                    console.log('err:', err);
-                    msgDiscord += 'something went wrong, better don\'t touch the Gotchis :(       hash:' + txHash + "\n"
-                    sendDiscord(msgDiscord + '\n' + err)
-                    reject("Error")
-                }
-            });
+    function sendDiscord(text) {
+        webhookClient.send(text, {
+            username: 'petAGotchi',
+            avatarURL: 'https://i.imgur.com/wSTFkRM.png',
+            embeds: [embed],
         });
-    })
-}
-
-
-function dateToLocalDateString(date) {
-    return date.toLocaleString("de-DE", { timeZone: "Europe/Berlin" })
-}
-
-
-async function runJob(gotchis) {
-    msgDiscord = 'Petting all Gotchis together :)'
-    console.log("Petting all Gotchis together :)")
-
-    // finally pet Gotchi
-    await petGotchis(gotchis)
-
-    // Send to Discord
-    sendDiscord(msgDiscord)
-
-}
-
-
-async function estimateGasPrice() {
-    let gasPrice;
-    try {
-        const res = await axios.get(`https://api.polygonscan.com/api?module=gastracker&action=gasoracle&apikey=${process.env.POLYGON_SCAN_API_KEY}`);
-        gasPrice = Math.round(parseFloat(res.data.result.ProposeGasPrice));
-    } catch (error) {
-        console.error(error);
     }
-    if (gasPrice === undefined) {
-        gasPrice = 200;
-    } else if (gasPrice < 50) {
-        gasPrice = 50;
-    } else if (gasPrice > 800) {
-        gasPrice = 800;
+
+    // Fetch Gotchi Details from The Graph
+    async function fetchUserFromGraph() {
+        const queryOwner = graphql.gql`
+                                    query fetchUser($id: String!) {
+                                        user(id: $id) {
+                                        id
+                                        gotchisOwned {
+                                            id
+                                            name
+                                            lastInteracted
+                                            gotchiId
+                                        }
+                                        }
+                                    }
+                                    `
+
+        const variables = { id: myAddr }
+        const response = await graphql.request(uriGraph, queryOwner, variables).catch(() => {
+            console.error
+            return null
+        });
+        return response.user
     }
-    return gasPrice;
+
+    function petGotchis(gotchis) {
+
+        // create Gotchi Array
+        var gotchiIds = [];
+        gotchis.forEach(gotchi => {
+            gotchiIds.push(parseInt(gotchi.gotchiId));
+        })
+
+        return new Promise((resolve, reject) => {
+
+            web3.eth.getTransactionCount(myAddr, (err, txCount) => {
+                const txObject = {
+                    nonce: web3.utils.toHex(txCount),
+                    to: smartContrAdr,
+                    gasLimit: web3.utils.toHex(150000),
+                    gasPrice: web3.utils.toHex(web3.utils.toWei(gasPrice.toString(), 'gwei')),
+                    data: contract.methods.interact(gotchiIds).encodeABI(),
+                    chainId: web3.utils.toHex(137) // Matic Chain
+                };
+                console.debug('txObject.data:', txObject.data);
+                // Sign the transaction
+                const tx = new Tx(txObject);
+                tx.sign(privateKeyHex);
+                // Serialize
+                const serializedTx = tx.serialize();
+                const raw = '0x' + serializedTx.toString('hex');
+                // console.log('raw:', raw)
+                // Broadcast the transaction
+                web3.eth.sendSignedTransaction(raw, (err, txHash) => {
+                    if (!err) {
+                        console.log('the Gotchis are looking happy again :)       hash:' + txHash);
+                        msgDiscord += 'the Gotchis are looking happy again :)       hash:' + txHash + "\n"
+                        resolve()
+                    } else {
+                        console.log('err:', err);
+                        msgDiscord += 'something went wrong, better don\'t touch the Gotchis :(       hash:' + txHash + "\n"
+                        sendDiscord(msgDiscord + '\n' + err)
+                        reject("Error")
+                    }
+                });
+            });
+        })
+    }
+
+
+    function dateToLocalDateString(date) {
+        return date.toLocaleString("de-DE", { timeZone: "Europe/Berlin" })
+    }
+
+
+    async function runJob(gotchis) {
+        msgDiscord = 'Petting all Gotchis together :)'
+        console.log("Petting all Gotchis together :)")
+
+        // finally pet Gotchi
+        await petGotchis(gotchis)
+
+        // Send to Discord
+        sendDiscord(msgDiscord)
+
+    }
+
+
+    async function estimateGasPrice() {
+        let gasPrice;
+        try {
+            const res = await axios.get(`https://api.polygonscan.com/api?module=gastracker&action=gasoracle&apikey=${process.env.POLYGON_SCAN_API_KEY}`);
+            gasPrice = Math.round(parseFloat(res.data.result.ProposeGasPrice));
+        } catch (error) {
+            console.error(error);
+        }
+        if (gasPrice === undefined) {
+            gasPrice = 200;
+        } else if (gasPrice < 50) {
+            gasPrice = 50;
+        } else if (gasPrice > 800) {
+            gasPrice = 800;
+        }
+        return gasPrice;
+    }
+
+
+
+
 }
+
+
+
