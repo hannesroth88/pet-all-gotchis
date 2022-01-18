@@ -172,12 +172,12 @@ async function main() {
                 // Broadcast the transaction
                 web3.eth.sendSignedTransaction(raw, (err, txHash) => {
                     if (!err) {
-                        console.log('the Gotchis are looking happy again :)       hash:' + txHash);
-                        msgDiscord += 'the Gotchis are looking happy again :)       hash:' + txHash + "\n"
+                        console.log(`the Gotchis are looking happy again :)       hash:' ${txHash}`);
+                        msgDiscord += `the Gotchis are looking happy again :) "\n"gasPrice used: ${gasPrice} gwei"\n" hash:' ${txHash} "\n"`
                         resolve()
                     } else {
                         console.log('err:', err);
-                        msgDiscord += 'something went wrong, better don\'t touch the Gotchis :(       hash:' + txHash + "\n"
+                        msgDiscord += `something went wrong, better don\'t touch the Gotchis :( "\n" hash:' ${txHash} "\n"`
                         sendDiscord(msgDiscord + '\n' + err)
                         reject("Error")
                     }
